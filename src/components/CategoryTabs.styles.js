@@ -28,10 +28,27 @@ export const TabButton = styled.button`
   font-size: 40px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 
   &:hover {
     filter: brightness(0.95);
   }
+
+ /* 클릭(활성화) 시에도 배경/글자색 유지 */
+ &:active {
+   background: ${({ $active }) => ($active ? "#FFF" : "#53669D")};
+   color: ${({ $active }) => ($active ? "#272727" : "#FFF")};
+ }
+
+ /* 포커스 테두리 제거(필요하면 커스텀으로 교체 가능) */
+ &:focus,
+ &:focus-visible {
+   outline: none;
+   box-shadow: none;
+ }
 `;
 
 export const PlusIcon = styled.img.attrs({

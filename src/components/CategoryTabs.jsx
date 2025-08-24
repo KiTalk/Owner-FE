@@ -16,7 +16,10 @@ export default function CategoryTabs({ tabs = [], activeId, onChange, onAdd }) {
       ))}
 
       {typeof onAdd === "function" && (
-        <button onClick={onAdd} style={{ all: "unset", cursor: "pointer" }}>
+      <button
+        onClick={onAdd}
+        style={{ all: "unset", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
+      >
           <PlusIcon />
         </button>
       )}

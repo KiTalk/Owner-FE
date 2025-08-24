@@ -1,44 +1,75 @@
-// 키/ID 정규화 유틸: 반드시 두 컴포넌트에서 동일하게 사용
+// src/utils/storage.js
+
+// 저장소 키 상수
+const CART_KEY = "cart:v1";
+const MENU_KEY = "menu:v1";
+
+/* ✅ 장바구니 관련 */
+export function saveCart(cartItems) {
+  try {
+    localStorage.setItem(CART_KEY, JSON.stringify(cartItems));
+  } catch (err) {
+    console.error("장바구니 저장 실패:", err);
+  }
+}
+
+export function loadCart() {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    console.error("장바구니 불러오기 실패:", err);
+    return [];
+  }
+}
+
+export function clearCart() {
+  try {
+    localStorage.removeItem(CART_KEY);
+  } catch (err) {
+    console.error("장바구니 초기화 실패:", err);
+  }
+}
+
+/* ✅ 메뉴 관련 */
+export function saveMenu(menu) {
+  try {
+    localStorage.setItem(MENU_KEY, JSON.stringify(menu));
+  } catch (err) {
+    console.error("메뉴 저장 실패:", err);
+  }
+}
+
+export function loadMenu(fallback = []) {
+  try {
+    const raw = localStorage.getItem(MENU_KEY);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (err) {
+    console.error("메뉴 불러오기 실패:", err);
+    return fallback;
+  }
+}
+
+export function clearAllAddedTotals() {
+  try {
+    localStorage.clear();
+  } catch (err) {
+    console.error("전체 로컬스토리지 초기화 실패:", err);
+  }
+}
+
+export function getStorageKey(type = "menu") {
+  switch (type) {
+    case "cart":
+      return "cart:v1";
+    case "menu":
+      return "menu:v1";
+    default:
+      return `${type}:v1`;
+  }
+}
+
 export function normalizeId(id) {
   if (id == null) return "";
   return String(id).trim().toLowerCase();
-}
-
-export function getStorageKey(id) {
-  return `added_total_${normalizeId(id)}`;
-}
-
-/** added_total_* 키인지 검사 */
-export function isAddedTotalKey(key) {
-  return typeof key === "string" && key.startsWith("added_total_");
-}
-
-/** 현재 localStorage의 added_total_* 키들을 [key] 배열로 반환 */
-export function listAddedTotalKeys(ls = typeof window !== "undefined" ? window.localStorage : null) {
-  if (!ls) return [];
-  const keys = [];
-  for (let i = 0; i < ls.length; i++) {
-    const k = ls.key(i);
-    if (isAddedTotalKey(k)) keys.push(k);
-  }
-  return keys;
-}
-
-/** added_total_* 전부 제거 */
-export function clearAllAddedTotals(ls = typeof window !== "undefined" ? window.localStorage : null) {
-  if (!ls) return;
-  listAddedTotalKeys(ls).forEach((k) => ls.removeItem(k));
-}
-
-/** 허용된 id(정규화된 id) 목록만 남기고 나머지 added_total_* 삭제 */
-export function purgeAddedTotalsByIds(allowedNormIds = [], ls = typeof window !== "undefined" ? window.localStorage : null) {
-  if (!ls) return;
-  const allowSet = new Set(allowedNormIds.map(normalizeId));
-  listAddedTotalKeys(ls).forEach((k) => {
-    // k 형태: "added_total_{normId}"
-    const normId = k.replace("added_total_", "");
-    if (!allowSet.has(normId)) {
-      ls.removeItem(k);
-    }
-  });
 }
