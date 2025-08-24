@@ -4,11 +4,12 @@ import {
   Page, Hero, HeroInner, HeroTitle,
   CartWidget, CartText, CartTextWrap,
   Section, SectionTitle, EditIcon,
-  ProductRow, AddTile, PlusIcon,
+  ProductRow, PlusIcon,
   FooterCta, SmallPlus,
-  ProfileImage,                   // ✅ 추가: 스타일로 분리한 프로필 이미지
+  ProfileImage,
 } from "./OrderPage.styles";
 import fixImage from "../assets/images/edit.png";
+import { clearAllAddedTotals } from "../utils/storage.js";
 import profileImage from "../assets/images/profile.png";
 import { MENU_DATA } from "../datas/Order.data";
 import CategoryTabs from "../components/CategoryTabs";
@@ -19,7 +20,9 @@ import MenuEdit from "../pages/MenuEdit";
 import CartProvider from "../components/CartProvider.jsx";
 import { useCart } from "../components/CartContext";
 
-/* 탭 목록을 상수로 관리 */
+/* 로컬 스토리지 키 (임시 저장용) */
+const STORAGE_KEY = "menu:v1";
+
 const TABS = [
   { id: "all",     label: "모든 메뉴" },
   { id: "coffee",  label: "커피" },
@@ -28,13 +31,32 @@ const TABS = [
   { id: "dessert", label: "디저트" },
 ];
 
-/* added_total_* 키 전체 삭제 (담은 수량 오버레이 리셋용) */
-function clearAllAddedTotals() {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  const ls = window.localStorage;
-  for (let i = ls.length - 1; i >= 0; i--) {
-    const key = ls.key(i);
-    if (key && key.startsWith("added_total_")) ls.removeItem(key);
+/* 로컬 저장/불러오기 유틸 */
+function loadMenuLS(fallback) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+function saveMenuLS(menu) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(menu));
+  } catch {
+    // 아무 처리도 안 함
+  }
+}
+
+function getStoredUserName() {
+  try {
+    const raw = localStorage.getItem("auth");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.userName || parsed?.userId || null;
+  } catch {
+    return null;
   }
 }
 
@@ -49,87 +71,157 @@ export default function TouchOrderPage() {
 function TouchOrderContent() {
   const navigate = useNavigate();
   const { totalQty } = useCart();
+  const userName = getStoredUserName() || "사장님";
 
   const [activeTabId, setActiveTabId] = useState("all");
   const [menu, setMenu] = useState(MENU_DATA);
   const [loading] = useState(false);
-  const [editTarget, setEditTarget] = useState(null); // 제품 편집/추가 모달 대상
+  const [editTarget, setEditTarget] = useState(null);
 
-  /* 장바구니 비면 오버레이 카운트 리셋 */
+  // 유효한 상품: 이름이 있거나 가격>0
+  const isValidProduct = (p) =>
+    !!p &&
+    (String(p.name || "").trim().length > 0 || (p.price != null && Number(p.price) > 0));
+
+  // 최초 로딩: localStorage → 없으면 더미 저장
+  useEffect(() => {
+    const loaded = loadMenuLS(MENU_DATA);
+    setMenu(loaded);
+    if (loaded === MENU_DATA) saveMenuLS(MENU_DATA);
+  }, []);
+
+  // 장바구니 수량 오버레이 초기화
   useEffect(() => {
     if (Number(totalQty ?? 0) === 0) clearAllAddedTotals();
   }, [totalQty]);
 
-  /* 'all' 데이터에서 현재 탭에 맞게 섹션/상품 필터링 */
+  // 현재 탭에 맞게 섹션/상품 필터링
   const allMenu = Array.isArray(menu) ? menu.find((m) => m.id === "all") : null;
   const baseSections = allMenu?.sections ?? [];
 
   const filteredSections = baseSections
     .map((sec) => {
+      const base = (sec.products || []).filter(isValidProduct);
       const filteredProducts =
-        activeTabId === "all"
-          ? sec.products
-          : sec.products.filter((p) => p.type === activeTabId);
+        activeTabId === "all" ? base : base.filter((p) => p.type === activeTabId);
       return { ...sec, products: filteredProducts };
     })
     .filter((sec) => (activeTabId === "all" ? true : sec.products.length > 0));
 
-  function handleCartClick() {
-    navigate("/order/cart");
-  }
+  const handleCartClick = () => navigate("/menu/list");
+  const handleEdit = (product) => setEditTarget(product);
 
-  // 제품 편집(기존) → 모달 오픈
-  function handleEdit(product) {
-    setEditTarget(product);
-  }
-
-  // 저장 시: 신규면 추가, 기존이면(추후) 업데이트 자리
+  // 저장: 삭제 / 신규 / 수정(+섹션이동)
   const handleEditSave = (updated) => {
+    const beforeSectionId = editTarget?.sectionId; // 이동 여부 비교용(알림 메시지)
     if (!updated) return;
 
-    if (!updated.id || updated._isNew) {
-      const newId = `${updated.sectionId}-${Date.now()}`;
-      const newProduct = {
-        id: newId,
-        name: updated.name || "",
-        price: Number(updated.price) || 0,
-        type: updated.type || "coffee",
-        popular: !!updated.popular,
-      };
+    setMenu((prev) => {
+      const next = prev.map((group) => {
+        if (group.id !== "all") return group;
 
-      setMenu((prev) =>
-        prev.map((group) =>
-          group.id !== "all"
-            ? group
-            : {
-                ...group,
-                sections: group.sections.map((s) =>
-                  s.id === updated.sectionId
-                    ? { ...s, products: [...s.products, newProduct] }
-                    : s
-                ),
-              }
-        )
-      );
+        // 섹션 단위 변경 준비
+        let sections = group.sections.map((s) => ({ ...s, products: [...(s.products || [])] }));
 
-      alert("새 메뉴가 추가되었습니다. (API 연동 시 서버에도 저장하세요)");
-      setEditTarget(null);
-      return;
-    }
+        // 삭제
+        if (updated._delete) {
+          sections = sections.map((s) => ({
+            ...s,
+            products: s.products.filter((p) => p.id !== updated.id),
+          }));
+          const withDeleted = { ...group, sections };
+          const finalMenu = prev.map((g) => (g.id === "all" ? withDeleted : g));
+          saveMenuLS(finalMenu);
+          return withDeleted;
+        }
 
-    alert("수정 사항이 저장되었습니다. (API 연동 시 서버에도 반영하세요)");
+        // 신규 추가
+        if (!updated.id || updated._isNew) {
+          const newId = `${updated.sectionId}-${Date.now()}`;
+          const newProduct = {
+            id: newId,
+            name: updated.name || "",
+            price: Number(updated.price) || 0,
+            type: updated.type || "coffee",
+            popular: !!updated.popular,
+            image: updated.image ?? null,
+            tags: Array.isArray(updated.tags) ? updated.tags : [],
+            options: Array.isArray(updated.options) ? updated.options : [],
+            sectionId: updated.sectionId,
+          };
+          sections = sections.map((s) =>
+            s.id === updated.sectionId ? { ...s, products: [...s.products, newProduct] } : s
+          );
+          const withAdded = { ...group, sections };
+          const finalMenu = prev.map((g) => (g.id === "all" ? withAdded : g));
+          saveMenuLS(finalMenu);
+          return withAdded;
+        }
+
+        // 기존 수정 (섹션 이동 포함)
+        const prevSectionId =
+          beforeSectionId ??
+          group.sections.find((s) => (s.products || []).some((p) => p.id === updated.id))?.id ??
+          updated.sectionId;
+
+        // 1) 기존 섹션에서 제거
+        if (prevSectionId) {
+          sections = sections.map((s) =>
+            s.id === prevSectionId
+              ? { ...s, products: s.products.filter((p) => p.id !== updated.id) }
+              : s
+          );
+        }
+
+        // 2) 새 섹션에 추가(동일 id 유지, 내용 업데이트)
+        const updatedProduct = {
+          id: updated.id,
+          name: updated.name ?? "",
+          price: Number(updated.price ?? 0),
+          type: updated.type ?? "coffee",
+          popular: !!updated.popular,
+          image: updated.image ?? null,
+          tags: Array.isArray(updated.tags) ? updated.tags : [],
+          options: Array.isArray(updated.options) ? updated.options : [],
+          sectionId: updated.sectionId,
+        };
+
+        sections = sections.map((s) =>
+          s.id === updated.sectionId
+            ? { ...s, products: [...s.products, updatedProduct] }
+            : s
+        );
+
+        const withMoved = { ...group, sections };
+        const finalMenu = prev.map((g) => (g.id === "all" ? withMoved : g));
+        saveMenuLS(finalMenu);
+        return withMoved;
+      });
+
+      return next;
+    });
+
+    alert(
+      updated._delete
+        ? "메뉴가 삭제되었습니다."
+        : updated._isNew
+        ? "새 메뉴가 추가되었습니다."
+        : updated.sectionId !== (beforeSectionId ?? updated.sectionId)
+        ? "수정 사항이 저장되고 섹션이 변경되었습니다."
+        : "수정 사항이 저장되었습니다."
+    );
     setEditTarget(null);
   };
 
   // 섹션명 변경
-  function handleEditSectionTitle(sectionId, currentTitle) {
-    const next = window.prompt("새 섹션명을 입력하세요", currentTitle);
-    if (!next) return;
-    const trimmed = next.trim();
+  const handleEditSectionTitle = (sectionId, currentTitle) => {
+    const nextTitle = window.prompt("새 섹션명을 입력하세요", currentTitle);
+    if (!nextTitle) return;
+    const trimmed = nextTitle.trim();
     if (!trimmed || trimmed === currentTitle) return;
 
-    setMenu((prev) =>
-      prev.map((group) =>
+    setMenu((prev) => {
+      const next = prev.map((group) =>
         group.id !== "all"
           ? group
           : {
@@ -138,12 +230,14 @@ function TouchOrderContent() {
                 s.id === sectionId ? { ...s, title: trimmed } : s
               ),
             }
-      )
-    );
-  }
+      );
+      saveMenuLS(next);
+      return next;
+    });
+  };
 
   // + 아이콘 → 빈 모달 추가
-  function handleAddNew(sectionId) {
+  const handleAddNew = (sectionId) => {
     const defaultType = activeTabId !== "all" ? activeTabId : "coffee";
     setEditTarget({
       _isNew: true,
@@ -155,36 +249,30 @@ function TouchOrderContent() {
       sectionId,
       image: null,
     });
-  }
-
-  const handleOpenMyPage = () => {
-    // 프로젝트 라우터에서 MyPage.jsx가 매핑된 경로로 바꿔도 됩니다.
-    navigate("/mypage");
   };
 
   return (
     <Page>
       <Hero>
         <HeroInner>
-          <HeroTitle>내가커피 사장님 안녕하세요!</HeroTitle>
+          <HeroTitle>{userName} 사장님 안녕하세요!</HeroTitle>
           <CartWidget onClick={handleCartClick}>
             <CartTextWrap>
               <CartText>주문 목록</CartText>
             </CartTextWrap>
           </CartWidget>
-
-          {/* ✅ 버튼 옆(바깥쪽)에 프로필 이미지 */}
           <ProfileImage
             src={profileImage}
-            alt="프로필"
-            onClick={handleOpenMyPage}
-            title="내 정보"
           />
         </HeroInner>
       </Hero>
 
-      {/* 상단 탭 */}
-      <CategoryTabs tabs={TABS} activeId={activeTabId} onChange={setActiveTabId} />
+      <CategoryTabs
+        tabs={TABS}
+        activeId={activeTabId}
+        onChange={setActiveTabId}
+        onAdd={() => navigate("/categories/new")}  // ✅ + 버튼 동작
+      />
 
       {loading && (
         <Section>
@@ -206,40 +294,28 @@ function TouchOrderContent() {
 
           <ProductRow>
             {section.products.map((item) => (
-              <ProductCard
-                key={item.id}
-                product={item}
-                mode="owner"
-                onEdit={handleEdit}
-              />
+              <ProductCard key={item.id} product={item} mode="owner" onEdit={handleEdit} />
             ))}
-
-            {/* 섹션별 + 타일 1개 — 상품이 3의 배수면 다음 줄 중앙 배치 */}
-            <AddTile
+              <PlusIcon
               onClick={() => handleAddNew(section.id)}
               aria-label="새 상품 추가"
               style={
                 section.products.length % 3 === 0
                   ? { gridColumn: "2", justifySelf: "center" }
                   : undefined
-              }
-            >
-              <PlusIcon />
-            </AddTile>
+              } />
           </ProductRow>
         </Section>
       ))}
 
-      {/* 하단 CTA */}
       <FooterCta onClick={() => navigate("/categories/new")}>
         메뉴 구분 추가하기 <SmallPlus />
       </FooterCta>
 
-      {/* 편집/추가 모달 */}
       <MenuEdit
         open={!!editTarget}
         product={editTarget}
-        sections={filteredSections.map((s) => ({ id: s.id, title: s.title }))}
+        sections={baseSections.map((s) => ({ id: s.id, title: s.title }))}
         onClose={() => setEditTarget(null)}
         onSave={handleEditSave}
       />

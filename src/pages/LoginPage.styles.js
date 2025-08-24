@@ -21,10 +21,8 @@ export const Screen = styled.div`
   overflow: hidden;
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, sans-serif;
-
   display: grid;
   place-items: center;
-
   @media (min-width: 1441px) {
     box-shadow: 0 0 20px rgba(0,0,0,0.1);
   }
@@ -39,7 +37,7 @@ export const Screen = styled.div`
 export const LogoContainer = styled.div`
   display: grid;
   justify-items: center;
-  margin-bottom: 0; /* 로고-입력 간격 */
+  margin-bottom: -100px; /* 로고-입력 간격 */
 `;
 
 export const LogoImage = styled.img`
@@ -51,17 +49,19 @@ export const LogoImage = styled.img`
 /** 폼 레이아웃 */
 export const Form = styled.form`
   display: grid;
-  gap: 12px;
+  margin-top: -200px;
+  row-gap: 8px;
 `;
 
 export const Field = styled.div`
   display: grid;
+  margin-bottom: 8px;
 `;
 
 /** 공통 입력 필드: 둥근 캡슐 형태 */
 export const Input = styled.input`
-  width: 590px;
-  height: 100px;
+  width: min(92vw, 590px);
+  height: clamp(56px, 10vw, 100px);
   box-sizing: border-box;
   padding: 0 18px;
   padding-left: 48px;          /* 텍스트 오른쪽으로 30px 더 밀기(18+30) */
@@ -72,8 +72,7 @@ export const Input = styled.input`
   color: ${TEXT};
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  margin-top: -18rem;
-
+  margin-top: 0;
   &::placeholder { color: ${PLACEHOLDER}; }
   &:focus {
     border-color: ${NAVY};
@@ -89,7 +88,7 @@ export const PasswordRow = styled.div`
   gap: 8px;
 `;
 
-export const TogglePwButton = styled.button`
+export const TogglePwButton = styled.button.attrs({ type: "button", "aria-label": "비밀번호 표시 전환" })`
   height: 40px;
   padding: 0 14px;
   border-radius: 20px;
@@ -100,10 +99,15 @@ export const TogglePwButton = styled.button`
   color: #374151;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.1s ease;
-
   &:hover { background: #f9fafb; }
   &:active { transform: translateY(0.5px); }
+  &:focus-visible {
+    outline: none;
+    border-color: ${NAVY};
+    box-shadow: 0 0 0 3px rgba(34,55,112,0.20);
+  }
 `;
+
 
 /** 옵션 행: 좌측 체크 그룹, 우측 링크들 */
 export const OptionRow = styled.div`
@@ -115,20 +119,18 @@ export const OptionRow = styled.div`
 `;
 
 /** 자동 로그인 클릭 영역 */
-export const LeftOption = styled.button`
+export const LeftOption = styled.button.attrs({ type: "button" })`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: -150px;  
+  margin-top: 0;
   border: 0;
   padding: 0;
   background: transparent;
   color: #6b7280;
   cursor: pointer;
   text-align: left;
-  position: relative; /* 겹침 제어를 위해 포지셔닝 생성 */
-  z-index: 2;         /* RightLinks보다 위로 */  
-
+  position: static;
   /* 라벨 텍스트 사이즈/간격 조절 */
   span {
     font-size: ${({ $labelSize }) => px($labelSize, "13px")};
@@ -175,7 +177,6 @@ export const Checkbox = styled.span`
   border: 1.5px solid ${INPUT_BORDER};
   display: inline-block;
   position: relative;
-
   &[data-checked="true"] {
     border-color: ${NAVY};
     background: ${NAVY};
@@ -190,25 +191,28 @@ export const RightLinks = styled.div`
   gap: 10px;
   color: #6b7280;
   font-size: 20px;
-
   .divider { color: #c7cad1; }
-
   /* 고정 위치값 (이전 기본값과 동일) */
-  margin-top: -150px;
+  margin-top: 0;
 `;
 
 /** 링크 버튼 */
-export const LinkBtn = styled.button`
+export const LinkBtn = styled.button.attrs({ type: "button" })`
   border: 0;
   padding: 0;
   background: transparent;
   color: inherit;
   font-size: inherit;
   cursor: pointer;
-
   &:hover {
     color: ${NAVY};
     text-decoration: underline;
+  }
+  &:focus-visible {
+    outline: none;
+    color: ${NAVY};
+    box-shadow: 0 0 0 3px rgba(34,55,112,0.20);
+    border-radius: 6px;
   }
 `;
 
@@ -223,7 +227,7 @@ export const ErrorText = styled.div`
 export const PrimaryBtn = styled.button`
   width: 590px;
   height: 100px;
-  margin: -50px 0 0 0;       /* top -50px, 좌우 0, 아래 0 */
+  margin: 20px 0 0 0;
   border: none;
   border-radius: 26px;
   background: ${NAVY};
@@ -233,7 +237,6 @@ export const PrimaryBtn = styled.button`
   letter-spacing: 0.2px;
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.2s ease;
-
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 10px 20px rgba(34,55,112,0.22);
@@ -246,7 +249,7 @@ export const PrimaryBtn = styled.button`
 export const SecondaryBtn = styled.button`
   width: 590px;
   height: 100px;
-  margin: 8px 0 0 0;         /* top 8px, 좌우 0, 아래 0 */
+  margin: 12px 0 0 0;
   border-radius: 26px;
   border: 1.5px solid ${NAVY};
   background: #fff;
@@ -256,6 +259,5 @@ export const SecondaryBtn = styled.button`
   letter-spacing: 0.2px;
   cursor: pointer;
   transition: background 0.15s ease;
-
   &:hover { background: #f7f9ff; }
 `;

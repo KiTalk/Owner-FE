@@ -1,25 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Overlay, Dialog, Header, HeaderBar, Title,
-  Body, LeftCol, Thumb,
+  Body, LeftCol, RightCol, Thumb,
   ThumbEditButton, HiddenFile,
-  Fields, Field, Label, Input, InputRow, UnitBadge,
+  Field, Label, Input, InputRow, UnitBadge,
   SelectWrap, ColorDot, Select,
-  ChipRow, Chip, Footer, Secondary, Primary
+  ChipRow, Chip, ChipGhost,
+  TagOptionRow, TagOptionBlock, PnCRow,
+  Footer, Secondary, Primary
 } from "./MenuEdit.styles";
 
 import editIcon from "../assets/images/edit.png";
 import amerIceImg from "../assets/images/americano-ice.png";
 
-/**
- * 모달로 뜨는 메뉴 설정 창
- * props:
- *  - open: boolean
- *  - product: { id, name, price, type, popular, sectionId, image?, _isNew? }
- *  - sections: [{id,title}]
- *  - onClose(): void
- *  - onSave(updated): void
- */
 export default function MenuEdit({ open, product, sections = [], onClose, onSave }) {
   const initialSection = useMemo(() => sections?.[0]?.id ?? "", [sections]);
 
@@ -27,23 +20,18 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState(null);
 
-  /* 폼 상태 */
+  // popular 제거, 태그만 사용
   const [form, setForm] = useState(() => ({
     name: product?.name ?? "",
     price: product?.price ?? 0,
     type: product?.type ?? "coffee",
-    popular: !!product?.popular,
-    // ✅ 신규 추가 시 product.sectionId를 우선 사용
     sectionId: product?.sectionId ?? initialSection,
-    tags: new Set(product?.popular ? ["인기"] : []),
-    options: new Set(
-      (product?.id || "").includes("ice") ? ["아이스"]
-      : (product?.id || "").includes("hot") ? ["핫"]
-      : []
+    tags: new Set(
+      Array.isArray(product?.tags) ? product.tags
+      : product?.popular ? ["인기"] : []   // popular true → "인기" 태그 기본 추가
     ),
   }));
 
-  /* 기본 이미지 로딩 */
   useEffect(() => {
     const isIceAmericano =
       (product?.id || "").includes("americano-ice") ||
@@ -64,10 +52,11 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
       name: product?.name ?? "",
       price: product?.price ?? 0,
       type: product?.type ?? "coffee",
-      popular: !!product?.popular,
-      // ✅ 여기서도 product.sectionId 우선
       sectionId: product?.sectionId ?? initialSection,
-      tags: new Set(product?.popular ? ["인기"] : []),
+      tags: new Set(
+        Array.isArray(product?.tags) ? product.tags
+        : product?.popular ? ["인기"] : []
+      ),
       options: new Set(
         (product?.id || "").includes("ice") ? ["아이스"]
         : (product?.id || "").includes("hot") ? ["핫"]
@@ -79,8 +68,8 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
   if (!open) return null;
 
   const setVal = (k) => (e) => {
-    const v = e?.target?.type === "checkbox" ? e.target.checked : e.target.value;
-    setForm((f) => ({ ...f, [k]: k === "price" ? Number(v) || 0 : v }));
+    const v = e?.target?.value;
+    setForm((f) => ({ ...f, [k]: k === "price" ? (Number(v) || 0) : v }));
   };
 
   const toggleSet = (key, value) => {
@@ -101,16 +90,21 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
     setImageFile(file);
   };
 
+  // 저장: popular 필드 제거, 태그만 유지
   const handleSave = () => {
+    if (!form.name.trim() && (!form.price || form.price === 0)) {
+      onSave?.({ ...product, _delete: true });
+      return;
+    }
+
     const payload = {
       ...product,
-      _isNew: product?._isNew || !product?.id,  // ✅ 신규 여부 유지
+      _isNew: product?._isNew || !product?.id,
       name: form.name,
       price: form.price,
       type: form.type,
-      popular: form.popular || form.tags.has("인기"),
       sectionId: form.sectionId,
-      tags: Array.from(form.tags),
+      tags: Array.from(form.tags),       // '인기' 등 태그 유지
       options: Array.from(form.options),
       image: imageUrl || null,
       imageFile: imageFile || null,
@@ -135,6 +129,7 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
           <Title>{product?._isNew || !product?.id ? "새 메뉴 추가" : "메뉴 설정"}</Title>
         </Header>
 
+        {/* 상단 1줄: (좌) 대표 이미지 + (우) RightCol(이름 + PnC 한 줄) */}
         <Body>
           <LeftCol>
             <Label>대표 이미지</Label>
@@ -147,66 +142,80 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
             </Thumb>
           </LeftCol>
 
-          <Fields>
+          <RightCol>
+            {/* 메뉴 이름 */}
             <Field className="field-name">
               <Label>메뉴 이름</Label>
-              <Input
-                value={form.name}
-                onChange={setVal("name")}
-                placeholder="이름을 입력하세요"
-              />
-            </Field>
-
-            <Field className="field-price">
-              <Label>가격</Label>
-              <InputRow>
                 <Input
-                  className="price"
-                  type="number"
-                  min={0}
-                  value={form.price}
-                  onChange={setVal("price")}
+                  className="name"
+                  value={form.name}
+                  onChange={setVal("name")}
+                  placeholder="이름을 입력하세요"
                 />
-                <UnitBadge>원</UnitBadge>
-              </InputRow>
             </Field>
 
-            <Field className="field-color">
-              <Label>색상 주문 표시</Label>
-              <SelectWrap>
-                <ColorDot $color={colorFor(form.sectionId)} />
-                <Select value={form.sectionId} onChange={setVal("sectionId")}>
-                  {sections.map((s) => (
-                    <option key={s.id} value={s.id}>{s.title}</option>
-                  ))}
-                </Select>
-              </SelectWrap>
-            </Field>
+            {/* PnC: 가격 + 색상주문표시 한 줄 */}
+            <PnCRow>
+              <Field className="field-price">
+                <Label>가격</Label>
+                <InputRow>
+                  <Input
+                    className="price"
+                    type="number"
+                    min={0}
+                    value={form.price}
+                    onChange={setVal("price")}
+                  />
+                  <UnitBadge>원</UnitBadge>
+                </InputRow>
+              </Field>
 
-            <Field className="field-tags">
+              <Field className="field-color">
+                <Label>색상 주문 표시</Label>
+                <SelectWrap>
+                  <ColorDot $color={colorFor(form.sectionId)} />
+                  <Select value={form.sectionId} onChange={setVal("sectionId")}>
+                    {sections.map((s) => (
+                      <option key={s.id} value={s.id}>{s.title}</option>
+                    ))}
+                  </Select>
+                </SelectWrap>
+              </Field>
+            </PnCRow>
+          </RightCol>
+
+          {/* 다음 줄 전체폭: 태그 + 옵션 */}
+          <TagOptionRow>
+            <TagOptionBlock>
               <Label>태그</Label>
               <ChipRow>
-                {["인기","달달","HOT"].map((t) => (
-                  <Chip key={t} $active={form.tags.has(t)} onClick={() => toggleSet("tags", t)}>
-                    {t}
-                  </Chip>
-                ))}
-                <Chip className="ghost" onClick={() => toggleSet("tags", "추가")}>＋</Chip>
+                <Chip
+                  $active={form.tags.has("인기")}
+                  onClick={() => toggleSet("tags", "인기")}
+                >
+                  인기
+                </Chip>
               </ChipRow>
-            </Field>
+            </TagOptionBlock>
 
-            <Field className="field-options">
+            <TagOptionBlock>
               <Label>옵션</Label>
               <ChipRow>
-                {["아이스","핫"].map((o) => (
-                  <Chip key={o} $active={form.options.has(o)} onClick={() => toggleSet("options", o)}>
-                    {o}
-                  </Chip>
-                ))}
-                <Chip className="ghost" onClick={() => toggleSet("options", "기타")}>＋</Chip>
-              </ChipRow>
-            </Field>
-          </Fields>
+                <Chip
+                  $active={form.options.has("아이스")}
+                  onClick={() => toggleSet("options", "아이스")}
+                >
+                  아이스
+                </Chip>
+                <Chip
+                  $active={form.options.has("핫")}
+                  onClick={() => toggleSet("options", "핫")}
+                >
+                  핫
+                </Chip>
+               <ChipGhost onClick={() => toggleSet("options", "기타")} aria-label="옵션 추가" />              </ChipRow>
+            </TagOptionBlock>
+          </TagOptionRow>
         </Body>
 
         <Footer>

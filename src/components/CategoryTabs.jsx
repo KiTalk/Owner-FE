@@ -1,20 +1,24 @@
 import React from "react";
-import { CategoryBar, CategoryInner, CategoryTab } from "./CategoryTabs.styles";
+import { TabsBar, TabButton, PlusIcon } from "./CategoryTabs.styles";
 
-export default function CategoryTabs({ tabs, activeId, onChange }) {
+export default function CategoryTabs({ tabs = [], activeId, onChange, onAdd }) {
   return (
-    <CategoryBar>
-      <CategoryInner>
-        {tabs.map((tab) => (
-          <CategoryTab
-            key={tab.id}
-            $active={tab.id === activeId}
-            onClick={() => onChange(tab.id)}
-          >
-            {tab.label}
-          </CategoryTab>
-        ))}
-      </CategoryInner>
-    </CategoryBar>
+    <TabsBar>
+      {tabs.map((tab) => (
+        <TabButton
+          key={tab.id}
+          $active={activeId === tab.id}
+          onClick={() => onChange?.(tab.id)}
+        >
+          {tab.label}
+        </TabButton>
+      ))}
+
+      {typeof onAdd === "function" && (
+        <button onClick={onAdd} style={{ all: "unset", cursor: "pointer" }}>
+          <PlusIcon />
+        </button>
+      )}
+    </TabsBar>
   );
 }

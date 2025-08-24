@@ -23,7 +23,7 @@ export const PopularTag = styled.div`
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 400;
   font-size: 28px;
 `;
 
@@ -31,15 +31,19 @@ export const EditChip = styled.button`
   position: absolute;
   top: 10px;
   right: 12px;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 17px;
-  border: 1px solid #cfcfcf;
-  background: #ffffff;
+  width: 78px;
+  height: 43px;
+  border-radius: 50px;
+  border: 1px solid #272727;
+  background: transparent;  /* ✅ 배경 투명 */
   color: #272727;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;   /* ✅ 글자를 줄바꿈하지 않고 한 줄에 표시 */
+ display: flex;         /* ✅ 수평/수직 가운데 정렬 */
+ align-items: center;
+ justify-content: center;
 `;
 
 export const ImageArea = styled.div`
@@ -121,13 +125,11 @@ export const TemperatureBadge = styled.span`
   color: #0b1b2b;
   background: #e7eef7;
   border: 3px solid #c8d6ea;
-
   ${(props) => props.$variant === "cold" && `
       color: #3191ff;
       background: transparent;
       border-color: #3191ff;
   `}
-
   ${(props) => props.$variant === "hot" && `
       color: #da2525;
       background: transparent;
@@ -173,7 +175,6 @@ export const QuantityButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-
   &::before, &::after {
     content: "";
     position: absolute;
@@ -187,7 +188,6 @@ export const QuantityButton = styled.button`
   &:hover { background: rgba(34, 55, 112, 0.08); }
   &:active { background: rgba(34, 55, 112, 0.16); transform: scale(0.95); }
   &:hover::before, &:hover::after, &:active::before, &:active::after { background: #223770; }
-
   ${(p) => p.$type === "minus" && `
     &::after { display: none; }
     &::before { background: #adadad; }

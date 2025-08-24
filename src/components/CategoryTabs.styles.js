@@ -1,66 +1,45 @@
-import styled, { css } from "styled-components";
+import styled from "styled-components";
+import bigPlus from "../assets/images/bigplus.png";
 
-export const CategoryBar = styled.div`
-  position: relative;
-  width: 90rem;
-  height: 6.4375rem;
-  margin: 12px 0 0 0;
-  background: #f2f6fb;
+/** 카테고리 바 전체 */
+export const TabsBar = styled.div`
   display: flex;
   align-items: center;
-`;
-
-export const CategoryInner = styled.div`
-  width: 76.375rem;
-  height: 5.625rem;
+  justify-content: space-between;
+  width: 1440px;
   margin: 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 18px;
+  padding: 0 50px;
+  gap: 10px;
+  background: #F2F6FB;
+  border-bottom: 1px solid #dce3ec;
 `;
 
-const inactiveTab = css`
-  background: #53669d;
-  color: #ffffff;
-  font-weight: 500;
-`;
-
-const activeTab = css`
-  background: #ffffff;
-  color: #272727;
-  font-weight: 700;
-  box-shadow: 2px 2px 7px rgba(0, 0, 0, 0.25);
-`;
-
-export const CategoryTab = styled.button`
-  flex: 0 0 230px;
-  width: 230px;
-  height: 5.625rem;
+/** 각 카테고리 버튼 */
+export const TabButton = styled.button`
+  flex: 1 1 0;  /* ✅ 개수에 따라 폭 자동 분배 */
+  min-width: 0;
+  height: 90px;
+  padding: 12px 0;
   border: none;
   border-radius: 20px 20px 0 0;
+  background: ${({ $active }) => ($active ? "#FFF" : "#53669D")};
+  color: ${({ $active }) => ($active ? "#272727" : "#FFF")};
+  font-weight: 500;
+  font-size: 40px;
   cursor: pointer;
-  font-size: 36px;
-  letter-spacing: -0.015em;
-  -webkit-tap-highlight-color: transparent;
-  appearance: none;
-  user-select: none;
-  ${(p) => (p.$active ? activeTab : inactiveTab)}
+  transition: background 0.15s ease, color 0.15s ease;
 
   &:hover {
-    background: ${(p) => (p.$active ? "#ffffff" : "#53669d")};
-    color: ${(p) => (p.$active ? "#272727" : "#ffffff")};
-    box-shadow: ${(p) => (p.$active ? "2px 2px 7px rgba(0,0,0,0.25)" : "none")};
+    filter: brightness(0.95);
   }
+`;
 
-  &:active {
-    background: ${(p) => (p.$active ? "#ffffff" : "#53669d")};
-    color: ${(p) => (p.$active ? "#272727" : "#ffffff")};
-    box-shadow: ${(p) => (p.$active ? "2px 2px 7px rgba(0,0,0,0.25)" : "none")};
-  }
-
-  &:focus,
-  &:focus-visible {
-    outline: none;
-    box-shadow: ${(p) => (p.$active ? "2px 2px 7px rgba(0,0,0,0.25)" : "none")};
-  }
+export const PlusIcon = styled.img.attrs({
+  src: bigPlus,
+  alt: "카테고리 추가",
+})`
+  flex: 0 0 44px;
+  height: 44px;
+  cursor: pointer;
+  object-fit: contain;
 `;

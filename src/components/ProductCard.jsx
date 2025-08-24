@@ -26,11 +26,11 @@ export default function ProductCard({
   cartQty = 0,
   onIncrease,
   onDecrease,
-  tagLabel,
   onEdit,
 }) {
   const normId = normalizeId(product?.id);
 
+  // ── 훅은 항상 최상단에서 호출 ────────────────────────────────
   const [quantity, setQuantity] = useState(0);
   const [addedTotal, setAddedTotal] = useState(() => {
     if (!normId || !LS) return 0;
@@ -53,8 +53,10 @@ export default function ProductCard({
 
   const handleMinus = () => setQuantity((q) => Math.max(0, q - 1));
   const handlePlus  = () => setQuantity((q) => q + 1);
-  const handleCartMinus = () => typeof onDecrease === "function" && onDecrease(product?.id);
-  const handleCartPlus  = () => typeof onIncrease === "function" && onIncrease(product?.id);
+  const handleCartMinus = () =>
+    typeof onDecrease === "function" && onDecrease(product?.id);
+  const handleCartPlus  = () =>
+    typeof onIncrease === "function" && onIncrease(product?.id);
 
   useLayoutEffect(() => {
     if (!normId) { setAddedTotal(0); return; }
@@ -94,22 +96,36 @@ export default function ProductCard({
     };
   }, [mode, normId]);
 
+  // ── 여기서부터 조건부 렌더링 검사 (훅 호출 이후) ─────────────
+  const isEmptyProduct =
+    !product ||
+    (!String(product?.name || "").trim() &&
+      (product?.price == null || Number(product?.price) === 0));
+
+  if (mode === "owner" && isEmptyProduct) {
+    return null; // 이제 훅은 이미 호출된 상태라 규칙 위반 아님
+  }
+
   const displayedQty = mode === "cart" ? Number(cartQty ?? 0) : quantity;
   const overlayCount = addedTotal;
   const showOverlay  = mode === "order" && overlayCount > 0;
 
   return (
     <ProductCardBox>
-      {tagLabel ? <PopularTag>{tagLabel}</PopularTag> : (product?.popular && <PopularTag>인기</PopularTag>)}
+     {Array.isArray(product?.tags) && product.tags.includes("인기") && (
+       <PopularTag>인기</PopularTag>
+     )}
 
       {typeof onEdit === "function" && (
         <EditChip type="button" onClick={() => onEdit(product)}>편집</EditChip>
       )}
 
       <ImageArea $variant={temperatureVariant}>
-        {product?.id === "americano-ice" && (
+        {product?.image ? (
+          <ProductImage src={product.image} alt={product?.name || ""} />
+        ) : product?.id === "americano-ice" ? (
           <ProductImage src={americanoIceImg} alt={product?.name || "아메리카노 아이스"} />
-        )}
+        ) : null}
       </ImageArea>
 
       <InfoArea>

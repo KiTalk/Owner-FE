@@ -9,13 +9,10 @@ import {
   Field,
   Input,
   PasswordRow,
-  CheckImage,     // ✅ styles에 추가한 export 사용
+  Checkbox, CheckWrap, CheckOverlay, RightLinks, LinkBtn,
   CheckGroup,
   OptionRow,
   LeftOption,
-  Checkbox,
-  RightLinks,
-  LinkBtn,
   ErrorText,
   PrimaryBtn,
   SecondaryBtn,
@@ -27,6 +24,7 @@ import checkImage from "../assets/images/check.png";
 /** ✅ 테스트 전용 계정 (회원가입 없이 이 계정으로만 로그인 허용) */
 const TEST_ID = "testuser";
 const TEST_PW = "1234";
+const TEST_NM = "내가커피";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -43,11 +41,10 @@ export default function LoginPage() {
     setError("");
 
     // 🔐 테스트 계정만 통과
-    if (userId.trim() === TEST_ID && userPw === TEST_PW) {
-      localStorage.setItem(
-        "auth",
-        JSON.stringify({ userId: TEST_ID, ts: Date.now(), autoLogin })
-      );
+  if (userId.trim() === TEST_ID && userPw === TEST_PW) {
+    // userName은 현재는 userId와 동일하게 저장 (필요 시 별도 입력 필드 만들어 분리 가능)
+    const auth = { userId: TEST_ID, userName: TEST_NM, ts: Date.now(), autoLogin };
+    localStorage.setItem("auth", JSON.stringify(auth));
       navigate("/order");
     } else {
       setError("아이디 또는 비밀번호가 올바르지 않습니다. (테스트 계정만 허용)");
@@ -97,20 +94,23 @@ export default function LoginPage() {
         {/* 옵션 행: 자동 로그인(좌) | 아이디/비밀번호 찾기(우) */}
         <OptionRow>
       <LeftOption
+        type="button"
         onClick={() => setAutoLogin((v) => !v)}
         $mt={-150}         /* 위로 10px 당김 */
         $labelSize={20}   /* 라벨 글씨 크기 */
+        aria-pressed={autoLogin}
       >
         <CheckGroup $gap={6}>
-          {/* 체크 상태에서만 아이콘 노출 */}
-          {autoLogin && (
-            <CheckImage src={checkImage} alt="" aria-hidden $size={18} />
-          )}
+        <CheckWrap $size={18}>
           <Checkbox
             aria-checked={autoLogin}
             data-checked={autoLogin}
             $size={18}
           />
+          {autoLogin && (
+            <CheckOverlay src={checkImage} alt="체크됨" />
+          )}
+        </CheckWrap>
         </CheckGroup>
         <span>자동 로그인</span>
       </LeftOption>

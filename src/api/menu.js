@@ -1,14 +1,98 @@
-// src/api/menu.js
-export async function fetchMenu() {
-  // 실제 연동 시: /api/menu 같은 엔드포인트로 변경
-  try {
-    const res = await fetch("/api/menu", { headers: { Accept: "application/json" } });
-    if (!res.ok) throw new Error("Failed to fetch menu");
-    const json = await res.json();
-    // 서버가 { data: [...] } 형태일 수도 있으니 안전 변환
-    return Array.isArray(json) ? json : (json?.data ?? []);
-  } catch {
-    // 실패하면 빈 배열 반환 → OrderPage에서 기본 MENU_DATA 그대로 사용
-    return [];
+// src/api/menuApi.js
+const STORAGE_KEY = "menu:v1";
+
+/** 메뉴 데이터를 로컬 스토리지에서 읽어오고, 없으면 fallback을 반환 */
+export async function fetchMenu(fallback) {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      // 파싱 실패 시 초기화
+      localStorage.removeItem(STORAGE_KEY);
+    }
   }
+  // 최초 로딩은 더미(fallback)로 채우고 저장
+  await saveMenu(fallback);
+  return fallback;
+}
+
+/** 메뉴 전체를 저장 */
+export async function saveMenu(menu) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(menu));
+  return true;
+}
+
+/** 섹션 제목 수정 */
+export async function updateSectionTitleAPI(menu, sectionId, newTitle) {
+  const next = menu.map((group) =>
+    group.id !== "all"
+      ? group
+      : {
+          ...group,
+          sections: group.sections.map((s) =>
+            s.id === sectionId ? { ...s, title: newTitle } : s
+          ),
+        }
+  );
+  await saveMenu(next);
+  return next;
+}
+
+/**
+ * 상품 추가/수정
+ * - updated._isNew === true 이면 "추가"
+ * - 이미 id가 있고 _isNew가 false면 "수정"
+ * - 이미지/태그/옵션도 반영
+ */
+export async function upsertProductAPI(menu, updated) {
+  let nextMenu = menu;
+  const isNew = !updated?.id || updated?._isNew;
+
+  // id 생성 규칙: {sectionId}-{timestamp}
+  const ensureId = (p) => p?.id || `${p.sectionId}-${Date.now()}`;
+
+  nextMenu = menu.map((group) => {
+    if (group.id !== "all") return group;
+
+    const nextSections = group.sections.map((s) => {
+      if (s.id !== updated.sectionId) return s;
+
+      if (isNew) {
+        const newProduct = {
+          id: ensureId(updated),
+          name: updated.name || "",
+          price: Number(updated.price) || 0,
+          type: updated.type || "coffee",
+          popular: !!updated.popular,
+          image: updated.image || null,
+          tags: Array.isArray(updated.tags) ? updated.tags : [],
+          options: Array.isArray(updated.options) ? updated.options : [],
+        };
+        return { ...s, products: [...s.products, newProduct] };
+      } else {
+        // 수정: 동일 id 교체
+        const products = s.products.map((p) =>
+          p.id === updated.id
+            ? {
+                ...p,
+                name: updated.name ?? p.name,
+                price: Number(updated.price ?? p.price),
+                type: updated.type ?? p.type,
+                popular: !!(updated.popular ?? p.popular),
+                image: updated.image ?? p.image ?? null,
+                tags: Array.isArray(updated.tags) ? updated.tags : p.tags ?? [],
+                options: Array.isArray(updated.options) ? updated.options : p.options ?? [],
+              }
+            : p
+        );
+        return { ...s, products };
+      }
+    });
+
+    return { ...group, sections: nextSections };
+  });
+
+  await saveMenu(nextMenu);
+  return nextMenu;
 }
