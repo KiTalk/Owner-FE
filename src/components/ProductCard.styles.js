@@ -27,7 +27,7 @@ export const PopularTag = styled.div`
   font-size: 28px;
 `;
 
-export const EditChip = styled.button`
+export const EditChip = styled.button.attrs({ type: "button", "aria-label": "메뉴 편집" })`
   position: absolute;
   top: 10px;
   right: 12px;
@@ -159,7 +159,10 @@ export const QuantityRow = styled.div`
   margin: 2rem auto 0;
 `;
 
-export const QuantityButton = styled.button`
+export const QuantityButton = styled.button.attrs((p) => ({
+  type: "button",
+  "aria-label": p.$type === "minus" ? "수량 감소" : "수량 증가",
+}))`
   width: 36px;
   height: 36px;
   border: none;

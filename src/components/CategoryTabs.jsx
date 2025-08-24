@@ -6,6 +6,7 @@ export default function CategoryTabs({ tabs = [], activeId, onChange, onAdd }) {
     <TabsBar>
       {tabs.map((tab) => (
         <TabButton
+          type="button"        
           key={tab.id}
           $active={activeId === tab.id}
           onClick={() => onChange?.(tab.id)}

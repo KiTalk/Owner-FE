@@ -25,7 +25,7 @@ export default function OrderCard({ order, isPending, onDone, onBack }) {
       </CardHeader>
 
       <Items>
-        {order.items.map((it, idx) => (
+        {(order.items ?? []).map((it, idx) => (
           <ItemRow key={idx}>
             <span> • {it.name}</span>
             <span>{it.qty}</span>

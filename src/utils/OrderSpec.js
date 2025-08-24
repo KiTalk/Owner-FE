@@ -81,13 +81,19 @@ export function saveCartItems(cartOrMap) {
   const itemsArrayRaw = Array.isArray(cartOrMap)
     ? cartOrMap
     : Object.values(cartOrMap ?? {});
-  const itemsArray = itemsArrayRaw.map(function (it) {
-    if (!it || typeof it !== "object") return it;
-    const result = { ...it };
-    // 저장 최소화
-    delete result.popular;
-    return result;
-  });
+const itemsArray = itemsArrayRaw.map((it) => {
+  if (!it || typeof it !== "object") return it;
+  // 필수 필드만 보존
+  const { id, name, price, qty, options } = it;
+  const normalized = {
+    id,
+    name: name != null ? String(name) : "",
+    price: Number(price) || 0,
+    qty: Number(qty) || 0,
+  };
+  if (options && typeof options === "object") normalized.options = options;
+  return normalized;
+});
 
   updateOrderSpec({
     cart: itemsArray,

@@ -88,7 +88,11 @@ export const PasswordRow = styled.div`
   gap: 8px;
 `;
 
-export const TogglePwButton = styled.button.attrs({ type: "button", "aria-label": "비밀번호 표시 전환" })`
+export const TogglePwButton = styled.button.attrs((p) => ({
+  type: "button",
+  "aria-label": "비밀번호 표시 전환",
+  "aria-pressed": !!p.$toggled,
+}))`
   height: 40px;
   padding: 0 14px;
   border-radius: 20px;
@@ -170,13 +174,24 @@ export const CheckOverlay = styled.img`
 `;
 
 /** 원형 체크박스 (사이즈 조절 가능) */
-export const Checkbox = styled.span`
+export const Checkbox = styled.button.attrs((p) => ({
+  type: "button",
+  role: "checkbox",
+  "aria-checked": String(p["data-checked"] === "true"),
+}))`
   width: ${({ $size }) => px($size, 16)};
   height: ${({ $size }) => px($size, 16)};
   border-radius: 50%;
   border: 1.5px solid ${INPUT_BORDER};
   display: inline-block;
   position: relative;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(34,55,112,0.20);
+  }
   &[data-checked="true"] {
     border-color: ${NAVY};
     background: ${NAVY};

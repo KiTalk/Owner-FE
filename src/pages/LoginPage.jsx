@@ -22,9 +22,9 @@ import logoImage from "../assets/images/logo.png";
 import checkImage from "../assets/images/check.png";
 
 /** ✅ 테스트 전용 계정 (회원가입 없이 이 계정으로만 로그인 허용) */
-const TEST_ID = "testuser";
-const TEST_PW = "1234";
-const TEST_NM = "내가커피";
+ const TEST_ID = import.meta.env.VITE_TEST_ID ?? "testuser";
+ const TEST_PW = import.meta.env.VITE_TEST_PW ?? "1234";
+ const TEST_NM = import.meta.env.VITE_TEST_NM ?? "내가커피";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -82,7 +82,7 @@ export default function LoginPage() {
           <PasswordRow>
             <Input
               id="userPw"
-              type="password"  // ✅ 보안상 password 타입으로
+              type="password"  
               placeholder="비밀번호를 입력해 주세요"
               value={userPw}
               onChange={(e) => setUserPw(e.target.value)}
