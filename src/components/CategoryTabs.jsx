@@ -17,7 +17,9 @@ export default function CategoryTabs({ tabs = [], activeId, onChange, onAdd }) {
 
       {typeof onAdd === "function" && (
       <button
+        type="button"
         onClick={onAdd}
+        aria-label="카테고리 추가"
         style={{ all: "unset", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
       >
           <PlusIcon />
