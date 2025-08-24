@@ -8,7 +8,8 @@ import {
 import PageTransition from "../components/PageTransition";
 import LoginPage from "../pages/LoginPage.jsx";
 import OrderPage from "../pages/OrderPage.jsx";
-import MyPage from "../pages/MyPage.jsx";
+import MenuListPage from "../pages/MenuListPage.jsx";
+
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -18,7 +19,7 @@ function AnimatedRoutes() {
         {/* 메인 홈페이지 */}
         <Route path="/" element={<LoginPage />}/>
         <Route path="/order" element={<OrderPage />}/>
-        <Route path="/mypage" element={<MyPage />}/>
+        <Route path="/menu/list" element={<MenuListPage />}/>
       </Routes>
     </PageTransition>
   );

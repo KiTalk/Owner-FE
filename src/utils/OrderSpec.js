@@ -1,5 +1,3 @@
-// src/utils/orderSpec.js
-
 export const ORDER_SPEC_KEY = "order_spec";
 
 /** 기본 스펙 */
@@ -87,7 +85,6 @@ export function saveCartItems(cartOrMap) {
     if (!it || typeof it !== "object") return it;
     const result = { ...it };
     // 저장 최소화
-    delete result.id;
     delete result.popular;
     return result;
   });
@@ -96,6 +93,7 @@ export function saveCartItems(cartOrMap) {
     cart: itemsArray,
   });
 }
+
 
 /** 포장/수령 옵션 저장 — 병합 */
 export function saveOrderPackage(packagePartial) {
