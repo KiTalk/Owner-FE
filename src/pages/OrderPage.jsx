@@ -9,7 +9,6 @@ import {
   ProfileImage,
 } from "./OrderPage.styles";
 import fixImage from "../assets/images/edit.png";
-import { clearAllAddedTotals } from "../utils/storage.js";
 import profileImage from "../assets/images/profile.png";
 import { MENU_DATA } from "../datas/Order.data";
 import CategoryTabs from "../components/CategoryTabs";
@@ -18,7 +17,6 @@ import MenuEdit from "../pages/MenuEdit";
 
 /* Context */
 import CartProvider from "../components/CartProvider.jsx";
-import { useCart } from "../components/CartContext";
 
 /* 로컬 스토리지 키 (임시 저장용) */
 const STORAGE_KEY = "menu:v1";
@@ -70,7 +68,6 @@ export default function TouchOrderPage() {
 
 function TouchOrderContent() {
   const navigate = useNavigate();
-  const { totalQty } = useCart();
   const userName = getStoredUserName() || "사장님";
 
   const [activeTabId, setActiveTabId] = useState("all");
@@ -89,12 +86,6 @@ function TouchOrderContent() {
     setMenu(loaded);
     if (loaded === MENU_DATA) saveMenuLS(MENU_DATA);
   }, []);
-
-  // 장바구니 수량 오버레이 초기화
-  useEffect(() => {
-    if (Number(totalQty ?? 0) === 0) clearAllAddedTotals();
-  }, [totalQty]);
-
   // 현재 탭에 맞게 섹션/상품 필터링
   const allMenu = Array.isArray(menu) ? menu.find((m) => m.id === "all") : null;
   const baseSections = allMenu?.sections ?? [];
@@ -110,6 +101,21 @@ function TouchOrderContent() {
 
   const handleCartClick = () => navigate("/menu/list");
   const handleEdit = (product) => setEditTarget(product);
+
+  // ✅ 하단 버튼: 섹션(메뉴 구분) 추가
+  const handleAddSection = () => {
+    setMenu((prev) => {
+      const next = prev.map((group) => {
+        if (group.id !== "all") return group;
+        const newSectionId = `section-${Date.now()}`;
+        const newSection = { id: newSectionId, title: "새로운 섹션", products: [] };
+        const sections = [...(group.sections || []), newSection];
+        return { ...group, sections };
+      });
+      saveMenuLS(next);
+      return next;
+    });
+  };  
 
   // 저장: 삭제 / 신규 / 수정(+섹션이동)
   const handleEditSave = (updated) => {
@@ -214,27 +220,43 @@ function TouchOrderContent() {
   };
 
   // 섹션명 변경
-  const handleEditSectionTitle = (sectionId, currentTitle) => {
-    const nextTitle = window.prompt("새 섹션명을 입력하세요", currentTitle);
-    if (!nextTitle) return;
-    const trimmed = nextTitle.trim();
-    if (!trimmed || trimmed === currentTitle) return;
+ const handleEditSectionTitle = (sectionId, currentTitle) => {
+   const input = window.prompt(
+     "새 섹션명을 입력하세요 (비우면 섹션이 삭제됩니다)",
+     currentTitle
+   );
+   if (input === null) return; // 취소
+   const trimmed = (input || "").trim();
 
-    setMenu((prev) => {
-      const next = prev.map((group) =>
-        group.id !== "all"
-          ? group
-          : {
-              ...group,
-              sections: group.sections.map((s) =>
-                s.id === sectionId ? { ...s, title: trimmed } : s
-              ),
-            }
-      );
-      saveMenuLS(next);
-      return next;
-    });
-  };
+   setMenu((prev) => {
+     const next = prev.map((group) => {
+       if (group.id !== "all") return group;
+
+       // ✅ 제목이 비었으면 섹션 삭제
+       if (!trimmed) {
+         return {
+           ...group,
+           sections: (group.sections || []).filter((s) => s.id !== sectionId),
+         };
+       }
+
+       // 제목 동일하면 변경 없음
+       if (trimmed === currentTitle) return group;
+
+       // 제목 수정
+       return {
+         ...group,
+         sections: (group.sections || []).map((s) =>
+           s.id === sectionId ? { ...s, title: trimmed } : s
+         ),
+       };
+     });
+     saveMenuLS(next);
+     return next;
+   });
+
+   if (!trimmed) alert("빈 제목으로 확인하여 섹션을 삭제했습니다.");
+ };
 
   // + 아이콘 → 빈 모달 추가
   const handleAddNew = (sectionId) => {
@@ -308,7 +330,7 @@ function TouchOrderContent() {
         </Section>
       ))}
 
-      <FooterCta onClick={() => navigate("/categories/new")}>
+      <FooterCta onClick={handleAddSection}>
         메뉴 구분 추가하기 <SmallPlus />
       </FooterCta>
 

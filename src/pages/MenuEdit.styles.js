@@ -189,7 +189,7 @@ export const Select = styled.select`
   border: 1.5px solid #cfd6e3;
   border-radius: 30px;
   padding: 0 80px 0px;  /* 오른쪽 패딩을 늘려 화살표 공간 확보 */
-  font-size: 32px;
+  font-size: 35px;
   font-weight: 600;
   outline: none;
   appearance: none;       /* ✅ 기본 화살표 제거 */
@@ -201,6 +201,20 @@ export const Select = styled.select`
   &:focus {
     border-color: ${NAVY};
     box-shadow: 0 0 0 3px rgba(34,55,112,0.12);
+  }
+
+  /* ▼ 드롭다운 펼쳐졌을 때 옵션 글자 크기/줄간격만 크게 줄이기 */
+  option {
+    font-size: 20px;     /* 옵션 목록 텍스트 크기 축소 */
+    line-height: 1.25;   /* 과도한 세로 높이 방지 */
+    /* 일부 브라우저는 padding을 무시하지만, 가능한 곳에서는 적용됨 */
+    padding: 6px 10px;
+  }
+
+  /* (선택) optgroup 레이블도 축소 */
+  optgroup {
+    font-size: 18px;
+    font-weight: 600;
   }
 `;
 
@@ -326,3 +340,4 @@ export const Primary = styled.button`
   cursor: pointer;
   &:hover { box-shadow: 0 8px 18px rgba(34,55,112,0.22); background: #1f336a; }
 `;
+
