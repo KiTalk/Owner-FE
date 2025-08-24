@@ -282,7 +282,7 @@ export const Chip = styled.button`
   font-weight: 400;
 `;
 
-export const ChipGhost = styled.button`
+export const ChipGhost = styled.button.attrs({ type: "button", "aria-label": "태그 추가" })`
   all: unset;              /* 기본 버튼 스타일 제거 */
   cursor: pointer;
   width: 24px;             /* 아이콘 크기에 맞게 조정 */

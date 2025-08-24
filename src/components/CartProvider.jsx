@@ -1,7 +1,7 @@
 // CartProvider.jsx
 import React, { useMemo, useReducer, useEffect } from "react";
 import { CartContext } from "./CartContext.jsx";
-import { loadOrderSpec, saveCartItems } from "../utils/orderSpec";
+import { loadOrderSpec, saveCartItems } from "../utils/OrderSpec.js";
 import { MENU_DATA } from "../datas/Order.data.js";
 
 /** 로컬스토리지 로드 */
