@@ -10,6 +10,7 @@ import {
   Footer, Secondary, Primary
 } from "./MenuEdit.styles";
 
+import { createPortal } from "react-dom";
 import editIcon from "../assets/images/edit.png";
 import amerIceImg from "../assets/images/americano-ice.png";
 
@@ -20,7 +21,7 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState(null);
 
-  // popular 제거, 태그만 사용
+  // 초기 form (options 기본값 포함)
   const [form, setForm] = useState(() => ({
     name: product?.name ?? "",
     price: product?.price ?? 0,
@@ -28,10 +29,12 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
     sectionId: product?.sectionId ?? initialSection,
     tags: new Set(
       Array.isArray(product?.tags) ? product.tags
-      : product?.popular ? ["인기"] : []   // popular true → "인기" 태그 기본 추가
+      : product?.popular ? ["인기"] : []
     ),
+    options: new Set(), // ✅ 첫 렌더 보호
   }));
 
+  // 이미지/폼 초기화
   useEffect(() => {
     const isIceAmericano =
       (product?.id || "").includes("americano-ice") ||
@@ -65,6 +68,24 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
     });
   }, [product, initialSection]);
 
+  // ✅ 모달 열릴 때 바디 스크롤 잠금 + 스크롤바 폭 보정
+  useEffect(() => {
+    if (!open) return;
+    const { style } = document.body;
+    const prevOverflow = style.overflow;
+    const prevPaddingRight = style.paddingRight;
+
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    style.overflow = "hidden";
+    if (scrollbarWidth > 0) style.paddingRight = `${scrollbarWidth}px`;
+
+    return () => {
+      style.overflow = prevOverflow;
+      style.paddingRight = prevPaddingRight;
+    };
+  }, [open]);
+
   if (!open) return null;
 
   const setVal = (k) => (e) => {
@@ -74,7 +95,8 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
 
   const toggleSet = (key, value) => {
     setForm((f) => {
-      const next = new Set(f[key]);
+      const prev = f[key];
+      const next = prev instanceof Set ? new Set(prev) : new Set();
       next.has(value) ? next.delete(value) : next.add(value);
       return { ...f, [key]: next };
     });
@@ -90,7 +112,7 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
     setImageFile(file);
   };
 
-  // 저장: popular 필드 제거, 태그만 유지
+  // 저장
   const handleSave = () => {
     if (!form.name.trim() && (!form.price || form.price === 0)) {
       onSave?.({ ...product, _delete: true });
@@ -104,8 +126,8 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
       price: form.price,
       type: form.type,
       sectionId: form.sectionId,
-      tags: Array.from(form.tags),       // '인기' 등 태그 유지
-      options: Array.from(form.options),
+      tags: Array.from(form.tags),
+      options: Array.from(form.options ?? []),
       image: imageUrl || null,
       imageFile: imageFile || null,
     };
@@ -121,7 +143,7 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
   };
   const colorFor = (id) => COLOR_MAP[id] || "#7bd35f";
 
-  return (
+  return createPortal(
     <Overlay role="dialog" aria-modal="true">
       <Dialog>
         <Header>
@@ -146,12 +168,12 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
             {/* 메뉴 이름 */}
             <Field className="field-name">
               <Label>메뉴 이름</Label>
-                <Input
-                  className="name"
-                  value={form.name}
-                  onChange={setVal("name")}
-                  placeholder="이름을 입력하세요"
-                />
+              <Input
+                className="name"
+                value={form.name}
+                onChange={setVal("name")}
+                placeholder="이름을 입력하세요"
+              />
             </Field>
 
             {/* PnC: 가격 + 색상주문표시 한 줄 */}
@@ -175,8 +197,10 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
                 <SelectWrap>
                   <ColorDot $color={colorFor(form.sectionId)} />
                   <Select value={form.sectionId} onChange={setVal("sectionId")}>
-                    {sections.map((s) => (
-                      <option key={s.id} value={s.id}>{s.title}</option>
+                    {(sections || []).map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.title}
+                      </option>
                     ))}
                   </Select>
                 </SelectWrap>
@@ -202,18 +226,22 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
               <Label>옵션</Label>
               <ChipRow>
                 <Chip
-                  $active={form.options.has("아이스")}
+                  $active={form.options?.has("아이스")}
                   onClick={() => toggleSet("options", "아이스")}
                 >
                   아이스
                 </Chip>
                 <Chip
-                  $active={form.options.has("핫")}
+                  $active={form.options?.has("핫")}
                   onClick={() => toggleSet("options", "핫")}
                 >
                   핫
                 </Chip>
-               <ChipGhost onClick={() => toggleSet("options", "기타")} aria-label="옵션 추가" />              </ChipRow>
+                <ChipGhost
+                  onClick={() => toggleSet("options", "기타")}
+                  aria-label="옵션 추가"
+                />
+              </ChipRow>
             </TagOptionBlock>
           </TagOptionRow>
         </Body>
@@ -223,6 +251,7 @@ export default function MenuEdit({ open, product, sections = [], onClose, onSave
           <Primary onClick={handleSave}>저장</Primary>
         </Footer>
       </Dialog>
-    </Overlay>
+    </Overlay>,
+    document.body
   );
 }

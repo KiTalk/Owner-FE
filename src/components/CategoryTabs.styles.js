@@ -47,7 +47,7 @@ export const TabButton = styled.button`
  &:focus,
  &:focus-visible {
    outline: none;
-   box-shadow: none;
+   box-shadow: 0 0 0 4px rgba(34, 55, 112, 0.35);
  }
 `;
 

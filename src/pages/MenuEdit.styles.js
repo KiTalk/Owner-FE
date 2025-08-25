@@ -8,17 +8,26 @@ const NAVY = "#223770";
 export const Overlay = styled.div`
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 999;
+  overscroll-behavior: contain; /* 스크롤 체인 방지 */
+  touch-action: none;           /* 터치 스크롤 차단 */
+  pointer-events: auto;         /* 포인터 이벤트 받기 */
 `;
 
 export const Dialog = styled.div`
-  position: relative;
+  position: fixed;
+  top: 50%;
+  left: 50%;
   width: 1223px;
   height: 882px;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
   border-radius: 22px;
   background: #fff;
   box-shadow: 0 18px 40px rgba(0,0,0,0.25);
