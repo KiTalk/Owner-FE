@@ -130,7 +130,9 @@ export function buildMenuDataFromFlat(flat = FLAT_MENU) {
     a.title.localeCompare(b.title, "ko")
   );
 
-  return [{ id: "all", label: "모든 메뉴", sections }];
+  return [
+    { id: "all", label: "모든 메뉴", sections },
+    { id: "coffee", label: "커피", sections},];
 }
 
 // OrderPage.jsx가 import하는 이름 유지
