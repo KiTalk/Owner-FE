@@ -86,9 +86,16 @@ function TouchOrderContent() {
     setMenu(loaded);
     if (loaded === MENU_DATA) saveMenuLS(MENU_DATA);
   }, []);
-  // 현재 탭에 맞게 섹션/상품 필터링
-  const allMenu = Array.isArray(menu) ? menu.find((m) => m.id === "all") : null;
-  const baseSections = allMenu?.sections ?? [];
+  const groups = Object.fromEntries((Array.isArray(menu) ? menu : []).map(g => [g.id, g]));
+  const CATEGORY_IDS = ["coffee", "tea", "drink", "dessert"];
+
+  // 📌 activeTabId별 섹션 원본 목록 (all은 모든 카테고리 섹션을 합쳐서 보여줌)
+  const baseSections =
+    activeTabId === "all"
+      ? CATEGORY_IDS.flatMap(cat =>
+          (groups[cat]?.sections ?? []).map(s => ({ ...s, __owner: cat }))
+        )
+      : (groups[activeTabId]?.sections ?? []);
 
   const filteredSections = baseSections
     .map((sec) => {
@@ -96,35 +103,49 @@ function TouchOrderContent() {
       const filteredProducts =
         activeTabId === "all" ? base : base.filter((p) => p.type === activeTabId);
       return { ...sec, products: filteredProducts };
-    })
-    .filter((sec) => (activeTabId === "all" ? true : sec.products.length > 0));
+    });
 
   const handleCartClick = () => navigate("/menu/list");
   const handleEdit = (product) => setEditTarget(product);
 
-  // ✅ 하단 버튼: 섹션(메뉴 구분) 추가
-  const handleAddSection = () => {
-    setMenu((prev) => {
-      const next = prev.map((group) => {
-        if (group.id !== "all") return group;
-        const newSectionId = `section-${Date.now()}`;
-        const newSection = { id: newSectionId, title: "새로운 섹션", products: [] };
-        const sections = [...(group.sections || []), newSection];
-        return { ...group, sections };
-      });
-      saveMenuLS(next);
-      return next;
-    });
-  };  
+ // ✅ 하단 버튼: 섹션(메뉴 구분) 추가 (카테고리별 저장)
+ const handleAddSection = () => {
+   const targetCat = activeTabId === "all" ? "coffee" : activeTabId; // all이면 기본 'coffee'
+   setMenu((prev) => {
+     const ts = Date.now();
+     const newSectionId = `${targetCat}-section-${ts}`;
+     const newSection = { id: newSectionId, title: "새로운 섹션", products: [] };
 
-  // 저장: 삭제 / 신규 / 수정(+섹션이동)
+     // 1) target 카테고리 그룹이 없으면 생성
+     const existed = Array.isArray(prev) && prev.some(g => g.id === targetCat);
+     let next = existed ? [...prev] : [...(prev || []), { id: targetCat, sections: [] }];
+
+     // 2) 해당 카테고리에 섹션 추가
+     next = next.map(group => {
+       if (group.id !== targetCat) return group;
+       const sections = group.sections || [];
+       if (sections.some(s => s.id === newSectionId)) return group; // 중복 방지
+       return { ...group, sections: [...sections, newSection] };
+     });
+
+     // 디버그 로그
+     console.log("[handleAddSection] targetCat:", targetCat,
+                 "added:", newSectionId,
+                 "sections:", next.find(g=>g.id===targetCat)?.sections?.map(s=>s.id));
+
+     saveMenuLS(next);
+     return next;
+   });
+ };  
+
+ // 저장: 삭제 / 신규 / 수정(+섹션이동)
   const handleEditSave = (updated) => {
     const beforeSectionId = editTarget?.sectionId; // 이동 여부 비교용(알림 메시지)
     if (!updated) return;
 
     setMenu((prev) => {
       const next = prev.map((group) => {
-        if (group.id !== "all") return group;
+        // if (group.id !== "all") return group;
 
         // 섹션 단위 변경 준비
         let sections = group.sections.map((s) => ({ ...s, products: [...(s.products || [])] }));
@@ -220,7 +241,7 @@ function TouchOrderContent() {
   };
 
   // 섹션명 변경
- const handleEditSectionTitle = (sectionId, currentTitle) => {
+ const handleEditSectionTitle = (sectionId, currentTitle, ownerGroupId) => {
    const input = window.prompt(
      "새 섹션명을 입력하세요 (비우면 섹션이 삭제됩니다)",
      currentTitle
@@ -230,7 +251,7 @@ function TouchOrderContent() {
 
    setMenu((prev) => {
      const next = prev.map((group) => {
-       if (group.id !== "all") return group;
+       if (group.id !== ownerGroupId) return group;
 
        // ✅ 제목이 비었으면 섹션 삭제
        if (!trimmed) {
@@ -310,8 +331,14 @@ function TouchOrderContent() {
               src={fixImage}
               alt="섹션명 편집"
               style={{ cursor: "pointer" }}
-              onClick={() => handleEditSectionTitle(section.id, section.title)}
-            />
+              onClick={() =>
+                handleEditSectionTitle(
+                  section.id,
+                  section.title,
+                  section.__owner || activeTabId
+                )
+              }
+             />
           </SectionTitle>
 
           <ProductRow>
