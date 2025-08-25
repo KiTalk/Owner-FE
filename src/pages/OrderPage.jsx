@@ -43,7 +43,7 @@ function saveMenuLS(menu) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(menu));
   } catch {
-    // 아무 처리도 안 함
+    // noop
   }
 }
 
@@ -86,7 +86,8 @@ function TouchOrderContent() {
     setMenu(loaded);
     if (loaded === MENU_DATA) saveMenuLS(MENU_DATA);
   }, []);
-  // 현재 탭에 맞게 섹션/상품 필터링
+
+  // 현재 탭에 맞게 섹션/상품 필터링 (★ 중복 선언 제거)
   const allMenu = Array.isArray(menu) ? menu.find((m) => m.id === "all") : null;
   const baseSections = allMenu?.sections ?? [];
 
@@ -97,12 +98,12 @@ function TouchOrderContent() {
         activeTabId === "all" ? base : base.filter((p) => p.type === activeTabId);
       return { ...sec, products: filteredProducts };
     })
-    .filter((sec) => (activeTabId === "all" ? true : sec.products.length > 0));
+    .filter((sec) => (activeTabId === "all" ? true : sec.products.length > 0)); // ★ 불필요 중복 제거
 
   const handleCartClick = () => navigate("/menu/list");
   const handleEdit = (product) => setEditTarget(product);
 
-  // ✅ 하단 버튼: 섹션(메뉴 구분) 추가
+  // ✅ 하단 버튼: 섹션(메뉴 구분) 추가 (★ 중복 정의 제거 / all 그룹에만 추가)
   const handleAddSection = () => {
     setMenu((prev) => {
       const next = prev.map((group) => {
@@ -115,7 +116,7 @@ function TouchOrderContent() {
       saveMenuLS(next);
       return next;
     });
-  };  
+  };
 
   // 저장: 삭제 / 신규 / 수정(+섹션이동)
   const handleEditSave = (updated) => {
@@ -219,44 +220,44 @@ function TouchOrderContent() {
     setEditTarget(null);
   };
 
-  // 섹션명 변경
- const handleEditSectionTitle = (sectionId, currentTitle) => {
-   const input = window.prompt(
-     "새 섹션명을 입력하세요 (비우면 섹션이 삭제됩니다)",
-     currentTitle
-   );
-   if (input === null) return; // 취소
-   const trimmed = (input || "").trim();
+  // 섹션명 변경 (★ 중복 선언/조건 제거)
+  const handleEditSectionTitle = (sectionId, currentTitle) => {
+    const input = window.prompt(
+      "새 섹션명을 입력하세요 (비우면 섹션이 삭제됩니다)",
+      currentTitle
+    );
+    if (input === null) return; // 취소
+    const trimmed = (input || "").trim();
 
-   setMenu((prev) => {
-     const next = prev.map((group) => {
-       if (group.id !== "all") return group;
+    setMenu((prev) => {
+      const next = prev.map((group) => {
+        if (group.id !== "all") return group;
 
-       // ✅ 제목이 비었으면 섹션 삭제
-       if (!trimmed) {
-         return {
-           ...group,
-           sections: (group.sections || []).filter((s) => s.id !== sectionId),
-         };
-       }
+        // ✅ 제목이 비었으면 섹션 삭제
+        if (!trimmed) {
+          return {
+            ...group,
+            sections: (group.sections || []).filter((s) => s.id !== sectionId),
+          };
+        }
 
-       // 제목 동일하면 변경 없음
-       if (trimmed === currentTitle) return group;
+        // 제목 동일하면 변경 없음
+        if (trimmed === currentTitle) return group;
 
-       // 제목 수정
-       return {
-         ...group,
-         sections: (group.sections || []).map((s) =>
-           s.id === sectionId ? { ...s, title: trimmed } : s
-         ),
-       };
-     });
-     saveMenuLS(next);
-     return next;
-   });
+        // 제목 수정
+        return {
+          ...group,
+          sections: (group.sections || []).map((s) =>
+            s.id === sectionId ? { ...s, title: trimmed } : s
+          ),
+        };
+      });
+      saveMenuLS(next);
+      return next;
+    });
 
-   if (!trimmed) alert("빈 제목으로 확인하여 섹션을 삭제했습니다.");
- };
+    if (!trimmed) alert("빈 제목으로 확인하여 섹션을 삭제했습니다.");
+  };
 
   // + 아이콘 → 빈 모달 추가
   const handleAddNew = (sectionId) => {
@@ -283,9 +284,7 @@ function TouchOrderContent() {
               <CartText>주문 목록</CartText>
             </CartTextWrap>
           </CartWidget>
-          <ProfileImage
-            src={profileImage}
-          />
+          <ProfileImage src={profileImage} />
         </HeroInner>
       </Hero>
 
@@ -310,7 +309,7 @@ function TouchOrderContent() {
               src={fixImage}
               alt="섹션명 편집"
               style={{ cursor: "pointer" }}
-              onClick={() => handleEditSectionTitle(section.id, section.title)}
+              onClick={() => handleEditSectionTitle(section.id, section.title)} // ★ 중복 onClick 제거
             />
           </SectionTitle>
 
@@ -318,14 +317,15 @@ function TouchOrderContent() {
             {section.products.map((item) => (
               <ProductCard key={item.id} product={item} mode="owner" onEdit={handleEdit} />
             ))}
-              <PlusIcon
+            <PlusIcon
               onClick={() => handleAddNew(section.id)}
               aria-label="새 상품 추가"
               style={
                 section.products.length % 3 === 0
                   ? { gridColumn: "2", justifySelf: "center" }
                   : undefined
-              } />
+              }
+            />
           </ProductRow>
         </Section>
       ))}
